@@ -15,7 +15,7 @@ import json
 import os
 import re
 import socket
-
+redir-host
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(REPO_DIR, "public")
 
@@ -124,9 +124,8 @@ def build_clash_yaml(data):
                 f"    uuid: {EDT_UUID}\n"
                 f"    tls: true\n"
                 f"    servername: {EDT_DOMAIN}\n"
-                f"    fingerprint: chrome\n"
-                f"    network: ws\n"
-                f"    ws-opts:\n"
+                f"    fingerprint: chrome\n
+                f"    network: ws\n"                f"    ws-opts:\n"
                 f"      path: {_yaml_str(ws_path)}\n"
                 f"      headers:\n"
                 f"        Host: {EDT_DOMAIN}\n"
@@ -145,7 +144,8 @@ external-controller: 127.0.0.1:9090
 dns:
   enable: true
   ipv6: false
-  enhanced-mode: redir-host
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
   default-nameserver:
     - 1.1.1.1
     - 8.8.8.8
