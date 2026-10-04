@@ -601,7 +601,7 @@ def build_sub_text(data):
             link = (
                 f"vless://{EDT_UUID}@{socket.gethostbyname(EDT_DOMAIN)}:443?security=tls&type=ws"
                 f"&host={EDT_DOMAIN}&fp={EDT_FINGERPRINT}&sni={EDT_DOMAIN}"
-                f"&path={path}&encryption=none&alpn=#{quote(name, safe='')}"
+                f"&path={path}&encryption=none#{quote(name, safe='')}"
             )
             lines.append(link)
     return "\n".join(lines) + "\n"
