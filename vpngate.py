@@ -15,7 +15,7 @@ VPN Gate SSTP 节点检测流水线
 退出码:
   0 = 正常完成 (允许部分节点检测失败)
   1 = 硬性失败 (数据源全挂 / 解析不出 SSTP 节点 / Worker 完全不可达 / 程序异常)
-     这些情况绝
+     这些情况绝"""
 import base64
 import csv
 import io
