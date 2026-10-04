@@ -1,4 +1,12 @@
-#!/usr/bin/env python3
+    server_ip = _resolve_server_ip(EDT_DOMAIN)        return domain
+
+
+except Exception:
+return socket.gethostbyname(domain)
+try:
+        """Resolve the worker domain to its real Cloudflare edge IP (bypass poisoned DNS). Falls back to the domain itself on failure."""
+def _resolve_server_ip(domain):
+    #!/usr/bin/env python3
 """Clash 专用订阅生成器 (YAML)。
 
 Clash 的配置文件订阅必须是 YAML 格式；这里把 vless 节点
@@ -14,6 +22,7 @@ import base64
 import json
 import os
 import re
+import socket
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(REPO_DIR, "public")
@@ -83,6 +92,7 @@ def _yaml_str(s):
 def build_clash_yaml(data):
     names = []
     proxies = []
+    
     ordered = sorted(
         data["countries"].items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
@@ -109,7 +119,7 @@ def build_clash_yaml(data):
             proxies.append(
                 f"  - name: {_yaml_str(name)}\n"
                 f"    type: vless\n"
-                f"    server: {EDT_DOMAIN}\n"
+                f"    server: {server_ip}\n"
                 f"    port: 443\n"
                 f"    uuid: {EDT_UUID}\n"
                 f"    tls: true\n"
