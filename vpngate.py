@@ -15,15 +15,14 @@ VPN Gate SSTP 节点检测流水线
 退出码:
   0 = 正常完成 (允许部分节点检测失败)
   1 = 硬性失败 (数据源全挂 / 解析不出 SSTP 节点 / Worker 完全不可达 / 程序异常)
-     这些情况绝不允许"假成功"
-"""
-
+     这些情况绝
 import base64
 import csv
 import io
 import json
 import os
 import re
+import socket
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -562,8 +561,13 @@ def _socks5_account(address, default_port=80):
 
 def build_sub_text(data):
     """生成 edgetunnel 完整 vless:// 订阅 (链式代理编码在 path)。
+
     填进 edgetunnel 后台「订阅链接」URL, 客户端定时拉取即可自动轮换。"""
     countries = data["countries"]
+    try:
+    server_ip = socket.gethostbyname(EDT_DOMAIN)
+except Exception:
+server_ip = EDT_DOMAIN
     lines = [
         "# edgetunnel 完整订阅 (vless://) —— 填进后台「订阅链接」URL",
         f"# 自动更新: {data['generated_at']} (每 30 分钟重新检测)",
@@ -596,7 +600,7 @@ def build_sub_text(data):
             enc = _b64_secret_encode(chain_json, EDT_UUID)
             path = quote("/video/" + enc, safe="")
             link = (
-                f"vless://{EDT_UUID}@{EDT_DOMAIN}:443?security=tls&type=ws"
+                f"vless://{EDT_UUID}@{server_ip}:443?security=tls&type=ws"
                 f"&host={EDT_DOMAIN}&fp={EDT_FINGERPRINT}&sni={EDT_DOMAIN}"
                 f"&path={path}&encryption=none&alpn=#{quote(name, safe='')}"
             )
