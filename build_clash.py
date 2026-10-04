@@ -15,7 +15,7 @@ import json
 import os
 import re
 import socket
-redir-host
+
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(REPO_DIR, "public")
 
