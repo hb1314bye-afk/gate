@@ -590,7 +590,7 @@ def build_sub_text(data):
             ),
         )
         for i, n in enumerate(nodes, 1):
-tag = "住宅" if n.get("residential") == "residential" else "机房"; name = f"{zh}-{tag}-{i:02d}"
+            tag = "住宅" if n.get("residential") == "residential" else "机房"; name = f"{zh}-{tag}-{i:02d}"
             chain = {"type": "sstp", **_socks5_account(f"vpn:vpn@{n['host']}:{n['port']}", 443)}
             chain_json = json.dumps(chain, separators=(",", ":"))
             enc = _b64_secret_encode(chain_json, EDT_UUID)
