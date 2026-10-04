@@ -123,7 +123,7 @@ def build_clash_yaml(data):
                 f"    port: 443\n"
                 f"    uuid: {EDT_UUID}\n"
                 f"    tls: true\n"
-                f"    : {EDT_DOMAIN}\n"
+                f"    servername: {EDT_DOMAIN}\n"
                 f"    \n
                 f"    network: ws\n"                f"    ws-opts:\n"
                 f"      path: {_yaml_str(ws_path)}\n"
