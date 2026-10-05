@@ -124,8 +124,8 @@ def build_clash_yaml(data):
                 f"    uuid: {EDT_UUID}\n"
                 f"    tls: true\n"
                 f"    servername: {EDT_DOMAIN}\n"
-                f"    \n
-                f"    network: ws\n"                f"    ws-opts:\n"
+                f"    network: ws\n"
+                f"    ws-opts:\n"
                 f"      path: {_yaml_str(ws_path)}\n"
                 f"      headers:\n"
                 f"        Host: {EDT_DOMAIN}\n"
