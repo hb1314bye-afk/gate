@@ -491,32 +491,32 @@ def build_hosts_text(data):
         countries.items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
     )
+    # 手机场景优先日韩家宽：只输出已检测成功的住宅节点，按检测延迟排序，每国取前 8 个。
+    # 这样能明显减少慢节点和跨洲出口，同时保留 data.json / 网页中的完整检测结果。
+    preferred_codes = {"JP", "KR"}
     for cname, grp in ordered:
         code = str(grp.get("code") or "?").upper()
+        if code not in preferred_codes:
+            continue
         zh = COUNTRY_ZH.get(code) or (code if code and code != "?" else cname)
         nodes = sorted(
-            grp["nodes"],
+            [n for n in grp["nodes"] if n.get("residential") == "residential"],
             key=lambda n: (
-                0 if n.get("residential") == "residential" else 1,
                 n.get("latency_ms") is None,
-                n.get("latency_ms") or 0,
+                n.get("latency_ms") or 999999,
                 n.get("host") or "",
             ),
-        )
+        )[:8]
+        if not nodes:
+            continue
         lines.append("")
-        lines.append(
-            f"# ---- {zh} {code} · {grp['count']} 节点 (住宅 {grp['residential']} / 机房 {grp['datacenter']}) ----"
-        )
-        res_nodes = [n for n in nodes if n.get("residential") == "residential"]
-        dc_nodes = [n for n in nodes if n.get("residential") != "residential"]
-        for i, n in enumerate(res_nodes, 1):
+        lines.append(f"# ---- {zh} {code} · 极速住宅候选 {len(nodes)} 个 ----")
+        for i, n in enumerate(nodes, 1):
             entry = edge[idx % len(edge)]
             idx += 1
-            lines.append(f"{entry}#{zh}-住宅-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
-        for i, n in enumerate(dc_nodes, 1):
-            entry = edge[idx % len(edge)]
-            idx += 1
-            lines.append(f"{entry}#{zh}-机房-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
+            latency = n.get("latency_ms")
+            latency_tag = f" {int(latency)}ms" if isinstance(latency, (int, float)) else ""
+            lines.append(f"{entry}#{zh}-SSTP家宽-{i:02d}{latency_tag}$sstp://vpn:vpn@{n['host']}:{n['port']}")
     return "\n".join(lines) + "\n"
 
 
