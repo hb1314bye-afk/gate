@@ -504,10 +504,10 @@ def build_hosts_text(data):
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
     )
     # SSTP 精品家宽模式：
-    # 日本最多 3 个，韩国最多 2 个；优先低 Worker 延迟、低 VPN Gate Ping、低会话数、高带宽。
+    # 日本最多 12 个，韩国最多 8 个；优先低 Worker 延迟、低 VPN Gate Ping、低会话数、高带宽。
     # 若严格条件下数量不够，会逐级放宽，避免某一轮直接没有节点。
     preferred_codes = {"JP", "KR"}
-    country_limit = {"JP": 3, "KR": 2}
+    country_limit = {"JP": 12, "KR": 8}
 
     for cname, grp in ordered:
         code = str(grp.get("code") or "?").upper()
