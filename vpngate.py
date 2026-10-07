@@ -165,7 +165,7 @@ def parse_csv(text):
     data_lines = lines[header_idx + 1:]
     # 列名映射 (不假设固定位置, 列名变化时自动适配; 全缺失时回退到已知位置)
     idx = {}
-    for col in ("hostname", "ip", "countrylong", "countryshort", "speed", "ping", "numvpnsessions", "openvpn_configdata_base64"):
+    for col in ("hostname", "ip", "countrylong", "countryshort", "openvpn_configdata_base64"):
         for i, h in enumerate(header):
             if h.strip().lstrip("*").lower() == col:
                 idx[col] = i
@@ -177,11 +177,8 @@ def parse_csv(text):
                 break
     pos = {"hostname": idx.get("hostname", 0),
            "ip": idx.get("ip", 1),
-           "ping": idx.get("ping", 3),
-           "speed": idx.get("speed", 4),
            "countrylong": idx.get("countrylong", 5),
            "countryshort": idx.get("countryshort", 6),
-           "numvpnsessions": idx.get("numvpnsessions", 7),
            "openvpn_configdata_base64": idx.get("openvpn_configdata_base64", len(header) - 1)}
 
     rows = []
@@ -198,9 +195,6 @@ def parse_csv(text):
             "ip": ip,
             "country_long": fields[pos["countrylong"]].strip(),
             "country_short": fields[pos["countryshort"]].strip(),
-            "speed": int(fields[pos["speed"]]) if fields[pos["speed"]].strip().isdigit() else 0,
-            "ping": int(fields[pos["ping"]]) if fields[pos["ping"]].strip().isdigit() else 9999,
-            "sessions": int(fields[pos["numvpnsessions"]]) if fields[pos["numvpnsessions"]].strip().isdigit() else 9999,
             "config_b64": fields[pos["openvpn_configdata_base64"]].strip(),
         })
     return rows
@@ -226,9 +220,6 @@ def parse_mirror_json(data):
             "ip": ip,
             "country_long": str(s.get("countrylong") or s.get("country_long") or s.get("country") or "").strip(),
             "country_short": str(s.get("countryshort") or s.get("country_short") or "").strip(),
-            "speed": int(s.get("speed") or 0),
-            "ping": int(s.get("ping") or 9999),
-            "sessions": int(s.get("numvpnsessions") or s.get("num_vpn_sessions") or s.get("sessions") or 9999),
             "config_b64": str(s.get("openvpn_configdata_base64") or s.get("config_b64") or "").strip(),
         })
     return rows
@@ -269,9 +260,6 @@ def to_sstp_nodes(rows):
             "ip": r["ip"],
             "country": r["country_long"],
             "country_code": r["country_short"],
-            "speed": r.get("speed", 0),
-            "ping": r.get("ping", 9999),
-            "sessions": r.get("sessions", 9999),
         })
     return nodes
 
@@ -503,103 +491,32 @@ def build_hosts_text(data):
         countries.items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
     )
-    # SSTP 精品家宽模式：
-    # 日本最多 12 个，韩国最多 8 个；优先低 Worker 延迟、低 VPN Gate Ping、低会话数、高带宽。
-    # 若严格条件下数量不够，会逐级放宽，避免某一轮直接没有节点。
-    preferred_codes = {"JP", "KR"}
-    country_limit = {"JP": 12, "KR": 8}
-
     for cname, grp in ordered:
         code = str(grp.get("code") or "?").upper()
-        if code not in preferred_codes:
-            continue
-
         zh = COUNTRY_ZH.get(code) or (code if code and code != "?" else cname)
-        candidates = [n for n in grp["nodes"] if n.get("residential") == "residential"]
-
-        def norm_num(v, default):
-            return v if isinstance(v, (int, float)) and v >= 0 else default
-
-        def quality(n):
-            worker_ms = norm_num(n.get("latency_ms"), 9999)
-            vg_ping = norm_num(n.get("ping"), 9999)
-            sessions = norm_num(n.get("sessions"), 9999)
-            speed_m = max(1.0, norm_num(n.get("speed"), 0) / 1_000_000)
-            # 分数越低越好。对拥挤和慢响应的惩罚更重，带宽只作为加分项，避免被夸张 Speed 值误导。
-            return (
-                worker_ms * 1.8
-                + min(vg_ping, 1000) * 0.8
-                + sessions * 4.0
-            ) / min(speed_m, 1200)
-
-        # 严格条件：优先真正适合网页/视频的低负载日韩住宅。
-        if code == "JP":
-            strict = [
-                n for n in candidates
-                if norm_num(n.get("speed"), 0) >= 100_000_000
-                and norm_num(n.get("ping"), 9999) <= 80
-                and norm_num(n.get("sessions"), 9999) <= 30
-                and norm_num(n.get("latency_ms"), 9999) <= 350
-            ]
-            medium = [
-                n for n in candidates
-                if norm_num(n.get("speed"), 0) >= 50_000_000
-                and norm_num(n.get("ping"), 9999) <= 140
-                and norm_num(n.get("sessions"), 9999) <= 60
-                and norm_num(n.get("latency_ms"), 9999) <= 600
-            ]
-        else:
-            strict = [
-                n for n in candidates
-                if norm_num(n.get("speed"), 0) >= 50_000_000
-                and norm_num(n.get("ping"), 9999) <= 100
-                and norm_num(n.get("sessions"), 9999) <= 50
-                and norm_num(n.get("latency_ms"), 9999) <= 450
-            ]
-            medium = [
-                n for n in candidates
-                if norm_num(n.get("speed"), 0) >= 30_000_000
-                and norm_num(n.get("ping"), 9999) <= 170
-                and norm_num(n.get("sessions"), 9999) <= 80
-                and norm_num(n.get("latency_ms"), 9999) <= 700
-            ]
-
-        limit = country_limit[code]
-        pool = strict
-        if len(pool) < limit:
-            # 保留 strict，同时从 medium 补齐且去重。
-            seen = {(n.get("host"), n.get("port")) for n in pool}
-            pool += [n for n in medium if (n.get("host"), n.get("port")) not in seen]
-        if len(pool) < limit:
-            seen = {(n.get("host"), n.get("port")) for n in pool}
-            pool += [n for n in candidates if (n.get("host"), n.get("port")) not in seen]
-
-        nodes = sorted(pool, key=quality)[:limit]
-        if not nodes:
-            continue
-
+        nodes = sorted(
+            grp["nodes"],
+            key=lambda n: (
+                0 if n.get("residential") == "residential" else 1,
+                n.get("latency_ms") is None,
+                n.get("latency_ms") or 0,
+                n.get("host") or "",
+            ),
+        )
         lines.append("")
-        lines.append(f"# ---- {zh} {code} · 精品 SSTP 家宽 {len(nodes)} 个 ----")
-        for i, n in enumerate(nodes, 1):
+        lines.append(
+            f"# ---- {zh} {code} · {grp['count']} 节点 (住宅 {grp['residential']} / 机房 {grp['datacenter']}) ----"
+        )
+        res_nodes = [n for n in nodes if n.get("residential") == "residential"]
+        dc_nodes = [n for n in nodes if n.get("residential") != "residential"]
+        for i, n in enumerate(res_nodes, 1):
             entry = edge[idx % len(edge)]
             idx += 1
-            latency = norm_num(n.get("latency_ms"), 9999)
-            vg_ping = norm_num(n.get("ping"), 9999)
-            speed_m = max(1, round(norm_num(n.get("speed"), 0) / 1_000_000))
-            sessions = norm_num(n.get("sessions"), 9999)
-
-            tags = [f"{speed_m}M"]
-            if vg_ping < 9999:
-                tags.append(f"VG{int(vg_ping)}ms")
-            if latency < 9999:
-                tags.append(f"CF{int(latency)}ms")
-            if sessions < 9999:
-                tags.append(f"{int(sessions)}人")
-
-            label = " · ".join(tags)
-            lines.append(
-                f"{entry}#{zh}-SSTP精品-{i:02d} · {label}$sstp://vpn:vpn@{n['host']}:{n['port']}"
-            )
+            lines.append(f"{entry}#{zh}-住宅-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
+        for i, n in enumerate(dc_nodes, 1):
+            entry = edge[idx % len(edge)]
+            idx += 1
+            lines.append(f"{entry}#{zh}-机房-{i:02d}$sstp://vpn:vpn@{n['host']}:{n['port']}")
     return "\n".join(lines) + "\n"
 
 
