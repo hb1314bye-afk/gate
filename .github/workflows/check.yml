@@ -37,11 +37,11 @@ jobs:
         run: python vpngate.py && python build_qx.py && python build_clash.py
         env:
           # 已部署的检测 Worker (不要改动: 检测统一走这里)
-          CHECK_WORKER: "https://fragrant-lake-6658.hb1314bye.workers.dev/check?sstp=vpn:vpn@"
+          CHECK_WORKER: "https://sstp-gate-check.hb1314bye.workers.dev/check?sstp=vpn:vpn@"
           CHECK_CONCURRENCY: "32"
           CHECK_TIMEOUT: "90"
           # 链式代理入口: 必须是你自己的 edgetunnel 域名 (链的加密用本项目 UUID, 第三方入口解不开)
-          HOSTS_ENTRY: "asia.877774.xyz:443,cf.877774.xyz:443,162.159.198.1:443,162.159.197.1:443"
+          HOSTS_ENTRY: "www.mlkj888.com:2087,cf.xreak.top:2087,cloudflare-ip.mofashi.ltd:2083,www.speedtest.net:2096,www.swowd.com:443"
 
       - name: Ensure GitHub Pages is enabled (one-time auto setup)
         run: |
