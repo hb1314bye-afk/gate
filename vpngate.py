@@ -165,7 +165,7 @@ def parse_csv(text):
     data_lines = lines[header_idx + 1:]
     # 列名映射 (不假设固定位置, 列名变化时自动适配; 全缺失时回退到已知位置)
     idx = {}
-    for col in ("hostname", "ip", "countrylong", "countryshort", "openvpn_configdata_base64"):
+    for col in ("hostname", "ip", "countrylong", "countryshort", "speed", "ping", "numvpnsessions", "openvpn_configdata_base64"):
         for i, h in enumerate(header):
             if h.strip().lstrip("*").lower() == col:
                 idx[col] = i
@@ -177,8 +177,11 @@ def parse_csv(text):
                 break
     pos = {"hostname": idx.get("hostname", 0),
            "ip": idx.get("ip", 1),
+           "ping": idx.get("ping", 3),
+           "speed": idx.get("speed", 4),
            "countrylong": idx.get("countrylong", 5),
            "countryshort": idx.get("countryshort", 6),
+           "numvpnsessions": idx.get("numvpnsessions", 7),
            "openvpn_configdata_base64": idx.get("openvpn_configdata_base64", len(header) - 1)}
 
     rows = []
@@ -195,6 +198,9 @@ def parse_csv(text):
             "ip": ip,
             "country_long": fields[pos["countrylong"]].strip(),
             "country_short": fields[pos["countryshort"]].strip(),
+            "speed": int(fields[pos["speed"]]) if fields[pos["speed"]].strip().isdigit() else 0,
+            "ping": int(fields[pos["ping"]]) if fields[pos["ping"]].strip().isdigit() else 9999,
+            "sessions": int(fields[pos["numvpnsessions"]]) if fields[pos["numvpnsessions"]].strip().isdigit() else 9999,
             "config_b64": fields[pos["openvpn_configdata_base64"]].strip(),
         })
     return rows
@@ -220,6 +226,9 @@ def parse_mirror_json(data):
             "ip": ip,
             "country_long": str(s.get("countrylong") or s.get("country_long") or s.get("country") or "").strip(),
             "country_short": str(s.get("countryshort") or s.get("country_short") or "").strip(),
+            "speed": int(s.get("speed") or 0),
+            "ping": int(s.get("ping") or 9999),
+            "sessions": int(s.get("numvpnsessions") or s.get("num_vpn_sessions") or s.get("sessions") or 9999),
             "config_b64": str(s.get("openvpn_configdata_base64") or s.get("config_b64") or "").strip(),
         })
     return rows
@@ -260,6 +269,9 @@ def to_sstp_nodes(rows):
             "ip": r["ip"],
             "country": r["country_long"],
             "country_code": r["country_short"],
+            "speed": r.get("speed", 0),
+            "ping": r.get("ping", 9999),
+            "sessions": r.get("sessions", 9999),
         })
     return nodes
 
@@ -499,14 +511,22 @@ def build_hosts_text(data):
         if code not in preferred_codes:
             continue
         zh = COUNTRY_ZH.get(code) or (code if code and code != "?" else cname)
-        nodes = sorted(
-            [n for n in grp["nodes"] if n.get("residential") == "residential"],
-            key=lambda n: (
-                n.get("latency_ms") is None,
-                n.get("latency_ms") or 999999,
-                n.get("host") or "",
-            ),
-        )[:8]
+        candidates = [n for n in grp["nodes"] if n.get("residential") == "residential"]
+
+        # VPN Gate 的 Speed 是宣称/测得带宽(bps)，不能当成真实下载速度保证，
+        # 但配合 Worker 实测延迟和在线会话数，能比只看延迟更好地避开拥挤节点。
+        def quality(n):
+            worker_ms = n.get("latency_ms")
+            worker_ms = worker_ms if isinstance(worker_ms, (int, float)) and worker_ms > 0 else 9999
+            vg_ping = n.get("ping") or 9999
+            speed_m = max(1.0, (n.get("speed") or 0) / 1_000_000)
+            sessions = n.get("sessions")
+            sessions = sessions if isinstance(sessions, int) and sessions >= 0 else 9999
+            return (worker_ms * 1.0 + min(vg_ping, 1000) * 0.35 + sessions * 2.0) / min(speed_m, 2000)
+
+        # 优先至少 20Mbps 且会话数不过高的住宅节点；若不足 4 个则自动放宽。
+        fast = [n for n in candidates if (n.get("speed") or 0) >= 20_000_000 and (n.get("sessions") or 9999) <= 120]
+        nodes = sorted(fast if len(fast) >= 4 else candidates, key=quality)[:8]
         if not nodes:
             continue
         lines.append("")
@@ -516,7 +536,9 @@ def build_hosts_text(data):
             idx += 1
             latency = n.get("latency_ms")
             latency_tag = f" {int(latency)}ms" if isinstance(latency, (int, float)) else ""
-            lines.append(f"{entry}#{zh}-SSTP家宽-{i:02d}{latency_tag}$sstp://vpn:vpn@{n['host']}:{n['port']}")
+            speed_tag = f" {max(1, round((n.get('speed') or 0) / 1_000_000))}M"
+            sessions_tag = f" {n.get('sessions')}人" if isinstance(n.get("sessions"), int) and n.get("sessions") < 9999 else ""
+            lines.append(f"{entry}#{zh}-SSTP家宽-{i:02d}{speed_tag}{latency_tag}{sessions_tag}$sstp://vpn:vpn@{n['host']}:{n['port']}")
     return "\n".join(lines) + "\n"
 
 
