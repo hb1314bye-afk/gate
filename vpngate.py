@@ -503,42 +503,103 @@ def build_hosts_text(data):
         countries.items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
     )
-    # 手机场景优先日韩家宽：只输出已检测成功的住宅节点，按检测延迟排序，每国取前 8 个。
-    # 这样能明显减少慢节点和跨洲出口，同时保留 data.json / 网页中的完整检测结果。
+    # SSTP 精品家宽模式：
+    # 日本最多 3 个，韩国最多 2 个；优先低 Worker 延迟、低 VPN Gate Ping、低会话数、高带宽。
+    # 若严格条件下数量不够，会逐级放宽，避免某一轮直接没有节点。
     preferred_codes = {"JP", "KR"}
+    country_limit = {"JP": 3, "KR": 2}
+
     for cname, grp in ordered:
         code = str(grp.get("code") or "?").upper()
         if code not in preferred_codes:
             continue
+
         zh = COUNTRY_ZH.get(code) or (code if code and code != "?" else cname)
         candidates = [n for n in grp["nodes"] if n.get("residential") == "residential"]
 
-        # VPN Gate 的 Speed 是宣称/测得带宽(bps)，不能当成真实下载速度保证，
-        # 但配合 Worker 实测延迟和在线会话数，能比只看延迟更好地避开拥挤节点。
-        def quality(n):
-            worker_ms = n.get("latency_ms")
-            worker_ms = worker_ms if isinstance(worker_ms, (int, float)) and worker_ms > 0 else 9999
-            vg_ping = n.get("ping") or 9999
-            speed_m = max(1.0, (n.get("speed") or 0) / 1_000_000)
-            sessions = n.get("sessions")
-            sessions = sessions if isinstance(sessions, int) and sessions >= 0 else 9999
-            return (worker_ms * 1.0 + min(vg_ping, 1000) * 0.35 + sessions * 2.0) / min(speed_m, 2000)
+        def norm_num(v, default):
+            return v if isinstance(v, (int, float)) and v >= 0 else default
 
-        # 优先至少 20Mbps 且会话数不过高的住宅节点；若不足 4 个则自动放宽。
-        fast = [n for n in candidates if (n.get("speed") or 0) >= 20_000_000 and (n.get("sessions") or 9999) <= 120]
-        nodes = sorted(fast if len(fast) >= 4 else candidates, key=quality)[:8]
+        def quality(n):
+            worker_ms = norm_num(n.get("latency_ms"), 9999)
+            vg_ping = norm_num(n.get("ping"), 9999)
+            sessions = norm_num(n.get("sessions"), 9999)
+            speed_m = max(1.0, norm_num(n.get("speed"), 0) / 1_000_000)
+            # 分数越低越好。对拥挤和慢响应的惩罚更重，带宽只作为加分项，避免被夸张 Speed 值误导。
+            return (
+                worker_ms * 1.8
+                + min(vg_ping, 1000) * 0.8
+                + sessions * 4.0
+            ) / min(speed_m, 1200)
+
+        # 严格条件：优先真正适合网页/视频的低负载日韩住宅。
+        if code == "JP":
+            strict = [
+                n for n in candidates
+                if norm_num(n.get("speed"), 0) >= 100_000_000
+                and norm_num(n.get("ping"), 9999) <= 80
+                and norm_num(n.get("sessions"), 9999) <= 30
+                and norm_num(n.get("latency_ms"), 9999) <= 350
+            ]
+            medium = [
+                n for n in candidates
+                if norm_num(n.get("speed"), 0) >= 50_000_000
+                and norm_num(n.get("ping"), 9999) <= 140
+                and norm_num(n.get("sessions"), 9999) <= 60
+                and norm_num(n.get("latency_ms"), 9999) <= 600
+            ]
+        else:
+            strict = [
+                n for n in candidates
+                if norm_num(n.get("speed"), 0) >= 50_000_000
+                and norm_num(n.get("ping"), 9999) <= 100
+                and norm_num(n.get("sessions"), 9999) <= 50
+                and norm_num(n.get("latency_ms"), 9999) <= 450
+            ]
+            medium = [
+                n for n in candidates
+                if norm_num(n.get("speed"), 0) >= 30_000_000
+                and norm_num(n.get("ping"), 9999) <= 170
+                and norm_num(n.get("sessions"), 9999) <= 80
+                and norm_num(n.get("latency_ms"), 9999) <= 700
+            ]
+
+        limit = country_limit[code]
+        pool = strict
+        if len(pool) < limit:
+            # 保留 strict，同时从 medium 补齐且去重。
+            seen = {(n.get("host"), n.get("port")) for n in pool}
+            pool += [n for n in medium if (n.get("host"), n.get("port")) not in seen]
+        if len(pool) < limit:
+            seen = {(n.get("host"), n.get("port")) for n in pool}
+            pool += [n for n in candidates if (n.get("host"), n.get("port")) not in seen]
+
+        nodes = sorted(pool, key=quality)[:limit]
         if not nodes:
             continue
+
         lines.append("")
-        lines.append(f"# ---- {zh} {code} · 极速住宅候选 {len(nodes)} 个 ----")
+        lines.append(f"# ---- {zh} {code} · 精品 SSTP 家宽 {len(nodes)} 个 ----")
         for i, n in enumerate(nodes, 1):
             entry = edge[idx % len(edge)]
             idx += 1
-            latency = n.get("latency_ms")
-            latency_tag = f" {int(latency)}ms" if isinstance(latency, (int, float)) else ""
-            speed_tag = f" {max(1, round((n.get('speed') or 0) / 1_000_000))}M"
-            sessions_tag = f" {n.get('sessions')}人" if isinstance(n.get("sessions"), int) and n.get("sessions") < 9999 else ""
-            lines.append(f"{entry}#{zh}-SSTP家宽-{i:02d}{speed_tag}{latency_tag}{sessions_tag}$sstp://vpn:vpn@{n['host']}:{n['port']}")
+            latency = norm_num(n.get("latency_ms"), 9999)
+            vg_ping = norm_num(n.get("ping"), 9999)
+            speed_m = max(1, round(norm_num(n.get("speed"), 0) / 1_000_000))
+            sessions = norm_num(n.get("sessions"), 9999)
+
+            tags = [f"{speed_m}M"]
+            if vg_ping < 9999:
+                tags.append(f"VG{int(vg_ping)}ms")
+            if latency < 9999:
+                tags.append(f"CF{int(latency)}ms")
+            if sessions < 9999:
+                tags.append(f"{int(sessions)}人")
+
+            label = " · ".join(tags)
+            lines.append(
+                f"{entry}#{zh}-SSTP精品-{i:02d} · {label}$sstp://vpn:vpn@{n['host']}:{n['port']}"
+            )
     return "\n".join(lines) + "\n"
 
 
