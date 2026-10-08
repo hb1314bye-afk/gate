@@ -1,0 +1,5 @@
+#!name=YouTube 字幕强制简体中文（失败保留原字幕）
+#!desc=对已有字幕尝试请求 zh-Hans；429或超时保留原字幕。不是语音转写；无法保证 YouTube 允许翻译。
+#!author=ChatGPT
+^https://www\.youtube\.com/api/timedtext\? url script-response-body https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-youtube-zh/yt-zh-safe.js
+hostname = www.youtube.com
