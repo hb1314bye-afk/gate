@@ -1,0 +1,5 @@
+#!name=YouTube 强制简体中文字幕 · Azure 版（失败保留原字幕）
+#!desc=需要先在 QX 本地配置 Azure Translator API Key；只上传字幕文本，不发送 YouTube Cookie。
+#!author=ChatGPT
+^https://www\.youtube\.com/api/timedtext\? url script-response-body https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-youtube-zh/yt-zh-azure.js
+hostname = www.youtube.com
