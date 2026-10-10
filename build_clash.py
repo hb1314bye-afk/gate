@@ -1,26 +1,16 @@
 #!/usr/bin/env python3
-"""Clash 专用订阅生成器 (YAML)。
-
-Clash 的配置文件订阅必须是 YAML 格式；这里把 vless 节点
-(链式代理编码在 ws path) 转成 Clash YAML，供 Clash/Clash Verge
-等客户端直接订阅。
-
-用法: 在 vpngate.py 生成 public/data.json 之后运行
-    python vpngate.py && python build_clash.py
-读取 public/data.json，输出 public/clash.yaml。
-"""
+"""Clash 专用订阅生成器 (YAML) - 支持内置自动优选入口。"""
 
 import base64
 import json
 import os
 import re
-import socket
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(REPO_DIR, "public")
 
-EDT_UUID = os.environ.get("EDT_UUID", "6ee5c323-a234-41e2-8417-04fe5605bc7a")
-EDT_DOMAIN = os.environ.get("EDT_DOMAIN", "edgetunnel.hb1314bye.workers.dev")
+EDT_UUID = os.environ.get("EDT_UUID", "385335ca-2bb5-4a6b-8e24-fdb906a72a76")
+EDT_DOMAIN = os.environ.get("EDT_DOMAIN", "edt-proxy-n3nbup.pages.dev")
 
 COUNTRY_ZH = {
     "JP": "日本", "KR": "韩国", "US": "美国", "CA": "加拿大", "RU": "俄罗斯",
@@ -42,7 +32,6 @@ COUNTRY_ZH = {
 
 
 def _b64_secret_encode(plaintext, secret):
-    """复刻 edgetunnel 的 base64SecretEncode: UTF-8 循环密钥 XOR + 标准 base64。"""
     data = plaintext.encode("utf-8")
     key = secret.encode("utf-8")
     mixed = bytes(data[i] ^ key[i % len(key)] for i in range(len(data)))
@@ -50,18 +39,12 @@ def _b64_secret_encode(plaintext, secret):
 
 
 def _socks5_account(address, default_port=80):
-    """复刻 edgetunnel 的 获取SOCKS5账号: user:pass@host:port -> dict。"""
     address = re.sub(r"^(socks5|http|https|turn|sstp)://", "", address.strip(), flags=re.I).split("#")[0].strip()
     at = address.rfind("@")
     auth, hostpart = (address[:at], address[at + 1:]) if at != -1 else ("", address)
     hostpart = hostpart.split("/")[0]
     username = password = None
     if auth:
-        if ":" not in auth:
-            try:
-                auth = base64.b64decode(auth + "=" * (-len(auth) % 4)).decode("utf-8")
-            except Exception:
-                pass
         parts = auth.split(":", 1)
         username = parts[0]
         password = parts[1] if len(parts) > 1 else None
@@ -74,25 +57,29 @@ def _socks5_account(address, default_port=80):
 
 
 def _yaml_str(s):
-    """YAML 安全字符串：含中文/特殊字符时加双引号。"""
     s = str(s)
     if re.search(r'[^\w\-. /]', s):
         return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
     return s
 
 
-def _resolve_server_ip(domain):
-    """Build 时解析出 Cloudflare 真实 IP，绕过被污染的 DNS；失败则回退用域名。"""
-    try:
-        return socket.gethostbyname(domain)
-    except Exception:
-        return domain
+def _load_edge_entries():
+    nodes_path = os.path.join(PUBLIC_DIR, "nodes.txt")
+    entries = []
+    if os.path.exists(nodes_path):
+        with open(nodes_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and "#" in line:
+                    entries.append(line.split("#", 1)[0].strip())
+    return entries or [f"{EDT_DOMAIN}:443"]
 
 
 def build_clash_yaml(data):
     names = []
     proxies = []
-    server_ip = _resolve_server_ip(EDT_DOMAIN)
+    edge_entries = _load_edge_entries()
+    idx = 0
     ordered = sorted(
         data["countries"].items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
@@ -112,6 +99,9 @@ def build_clash_yaml(data):
         for i, n in enumerate(nodes, 1):
             tag = "住宅" if n.get("residential") == "residential" else "机房"
             name = f"{zh}-{tag}-{i:02d}"
+            entry = edge_entries[idx % len(edge_entries)]
+            idx += 1
+            server_host, server_port = (entry.rsplit(":", 1) if ":" in entry else (entry, "443"))
             chain = {"type": "sstp", **_socks5_account(f"vpn:vpn@{n['host']}:{n['port']}", 443)}
             enc = _b64_secret_encode(json.dumps(chain, separators=(",", ":")), EDT_UUID)
             ws_path = "/video/" + enc
@@ -119,11 +109,12 @@ def build_clash_yaml(data):
             proxies.append(
                 f"  - name: {_yaml_str(name)}\n"
                 f"    type: vless\n"
-                f"    server: {server_ip}\n"
-                f"    port: 443\n"
+                f"    server: {server_host}\n"
+                f"    port: {server_port}\n"
                 f"    uuid: {EDT_UUID}\n"
                 f"    tls: true\n"
                 f"    servername: {EDT_DOMAIN}\n"
+                f"    client-fingerprint: chrome\n"
                 f"    network: ws\n"
                 f"    ws-opts:\n"
                 f"      path: {_yaml_str(ws_path)}\n"
@@ -133,26 +124,26 @@ def build_clash_yaml(data):
             )
 
     proxy_list = "\n".join(f"      - {_yaml_str(n)}" for n in names)
-    out = f"""# Clash 订阅 —— 自动更新: {data['generated_at']} (每 30 分钟重新检测)
+    out = f"""# Clash 订阅 —— 自动更新: {data['generated_at']}
 # 固定地址: https://hb1314bye-afk.github.io/gate/clash.yaml
 port: 7890
 socks-port: 7891
-allow-lan: false
+allow-lan: true
 mode: rule
 log-level: info
-external-controller: 127.0.0.1:9090
+unified-delay: true
+global-client-fingerprint: chrome
 dns:
   enable: true
   ipv6: false
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   default-nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
+    - 223.5.5.5
+    - 119.29.29.29
   nameserver:
-    - https://1.1.1.1/dns-query
-    - https://9.9.9.9/dns-query
-    - https://8.8.8.8/dns-query
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
 proxies:
 {chr(10).join(proxies)}
 proxy-groups:
@@ -166,8 +157,10 @@ proxy-groups:
     type: select
     proxies:
       - 节点选择
+{proxy_list}
       - DIRECT
 rules:
+  - GEOIP,CN,DIRECT
   - MATCH,PROXY
 """
     return out
