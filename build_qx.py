@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Quantumult X 专用订阅生成器 (trojan + ws + tls)。
-
-QX 原生不支持 vless；这里用 trojan 承载同一条 SSTP 链式代理
-(编码在 ws-path=/video/<base64>)，效果与 vless 订阅等价。
-
-用法: 在 vpngate.py 生成 public/data.json 之后运行
-    python vpngate.py && python build_qx.py
-读取 public/data.json，输出 public/qx.txt。
-"""
+"""Quantumult X 专用订阅生成器 (trojan + ws + tls) - 支持内置自动优选入口。"""
 
 import base64
 import json
@@ -17,8 +9,8 @@ import re
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBLIC_DIR = os.path.join(REPO_DIR, "public")
 
-EDT_UUID = os.environ.get("EDT_UUID", "6ee5c323-a234-41e2-8417-04fe5605bc7a")
-EDT_DOMAIN = os.environ.get("EDT_DOMAIN", "edgetunnel.hb1314bye.workers.dev")
+EDT_UUID = os.environ.get("EDT_UUID", "385335ca-2bb5-4a6b-8e24-fdb906a72a76")
+EDT_DOMAIN = os.environ.get("EDT_DOMAIN", "edt-proxy-n3nbup.pages.dev")
 
 COUNTRY_ZH = {
     "JP": "日本", "KR": "韩国", "US": "美国", "CA": "加拿大", "RU": "俄罗斯",
@@ -40,7 +32,6 @@ COUNTRY_ZH = {
 
 
 def _b64_secret_encode(plaintext, secret):
-    """复刻 edgetunnel 的 base64SecretEncode: UTF-8 循环密钥 XOR + 标准 base64。"""
     data = plaintext.encode("utf-8")
     key = secret.encode("utf-8")
     mixed = bytes(data[i] ^ key[i % len(key)] for i in range(len(data)))
@@ -48,18 +39,12 @@ def _b64_secret_encode(plaintext, secret):
 
 
 def _socks5_account(address, default_port=80):
-    """复刻 edgetunnel 的 获取SOCKS5账号: user:pass@host:port -> dict。"""
     address = re.sub(r"^(socks5|http|https|turn|sstp)://", "", address.strip(), flags=re.I).split("#")[0].strip()
     at = address.rfind("@")
     auth, hostpart = (address[:at], address[at + 1:]) if at != -1 else ("", address)
     hostpart = hostpart.split("/")[0]
     username = password = None
     if auth:
-        if ":" not in auth:
-            try:
-                auth = base64.b64decode(auth + "=" * (-len(auth) % 4)).decode("utf-8")
-            except Exception:
-                pass
         parts = auth.split(":", 1)
         username = parts[0]
         password = parts[1] if len(parts) > 1 else None
@@ -71,13 +56,26 @@ def _socks5_account(address, default_port=80):
     return {"username": username, "password": password, "hostname": hostname, "port": port}
 
 
+def _load_edge_entries():
+    nodes_path = os.path.join(PUBLIC_DIR, "nodes.txt")
+    entries = []
+    if os.path.exists(nodes_path):
+        with open(nodes_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and "#" in line:
+                    entries.append(line.split("#", 1)[0].strip())
+    return entries or [f"{EDT_DOMAIN}:443"]
+
+
 def build_qx_text(data):
     countries = data["countries"]
+    edge_entries = _load_edge_entries()
+    idx = 0
     lines = [
         "# Quantumult X 专用 (trojan+ws+tls) —— QX 不支持 vless，改用 trojan 承载同一条链式代理",
-        f"# 自动更新: {data['generated_at']} (每 30 分钟重新检测)",
+        f"# 自动更新: {data['generated_at']}",
         "# 固定地址: https://hb1314bye-afk.github.io/gate/qx.txt",
-        "# 用法: 复制每一行，在 QX「节点」列表手动添加（tag 已带国家/住宅标识，挑顺眼的加几个即可）",
         "# ========================================================",
     ]
     ordered = sorted(
@@ -103,12 +101,14 @@ def build_qx_text(data):
         for i, n in enumerate(nodes, 1):
             tag = "住宅" if n.get("residential") == "residential" else "机房"
             name = f"{zh}-{tag}-{i:02d}"
+            entry = edge_entries[idx % len(edge_entries)]
+            idx += 1
             chain = {"type": "sstp", **_socks5_account(f"vpn:vpn@{n['host']}:{n['port']}", 443)}
             chain_json = json.dumps(chain, separators=(",", ":"))
             enc = _b64_secret_encode(chain_json, EDT_UUID)
             ws_path = "/video/" + enc
             lines.append(
-                f"trojan={EDT_DOMAIN}:443, password={EDT_UUID}, over-tls=true, "
+                f"trojan={entry}, password={EDT_UUID}, over-tls=true, "
                 f"tls-host={EDT_DOMAIN}, ws=true, ws-path={ws_path}, tag={name}"
             )
     return "\n".join(lines) + "\n"
