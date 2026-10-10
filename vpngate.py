@@ -41,10 +41,11 @@ VPNGATE_MIRROR = os.environ.get(
     "VPNGATE_MIRROR",
     "https://raw.githubusercontent.com/fdciabdul/Vpngate-Scraper-API/main/json/data.json",
 )
-WORKER_CHECK_URL = os.environ.get(
-    "CHECK_WORKER",
-    "https://gate-check-pages.pages.dev/check?sstp=vpn:vpn@",
-)
+_raw_worker = os.environ.get("CHECK_WORKER", "").strip()
+if not _raw_worker or "fragrant-lake-6658" in _raw_worker or "你的域名" in _raw_worker:
+    WORKER_CHECK_URL = "https://gate-check-pages.pages.dev/check?sstp=vpn:vpn@"
+else:
+    WORKER_CHECK_URL = _raw_worker
 CONCURRENCY = max(1, int(os.environ.get("CHECK_CONCURRENCY", "32")))
 CHECK_TIMEOUT = float(os.environ.get("CHECK_TIMEOUT", "90"))
 MAX_CHECK_NODES = int(os.environ.get("MAX_CHECK_NODES", "0"))
@@ -269,10 +270,11 @@ def get_combined_edge_hosts():
     合并静态优选域名与优选 API 端点
     """
     _entry = os.environ.get("HOSTS_ENTRY", "").strip()
-    static_hosts = [e.strip() for e in _entry.split(",") if e.strip()] if _entry else EDGE_HOSTS
+    extra_entries = [e.strip() for e in _entry.split(",") if e.strip() and "edt-proxy-n3nbup.pages.dev" not in e]
+    static_hosts = EDGE_HOSTS + extra_entries
     api_hosts = fetch_optimal_api_endpoints(OPTIMAL_API)
 
-    # 将 API 实时优选 IP 放在前面，静态优选域名紧随其后，交错/去重
+    # 将 API 实时优选 IP 放在前面，静态优选域名紧随其后，去重
     combined = []
     seen = set()
     for h in api_hosts + static_hosts:
