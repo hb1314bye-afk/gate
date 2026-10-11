@@ -32,6 +32,9 @@ COUNTRY_ZH = {
 
 
 def _b64_secret_encode(plaintext, secret):
+    rem = len(plaintext.encode("utf-8")) % 3
+    if rem:
+        plaintext = plaintext + (" " * (3 - rem))
     data = plaintext.encode("utf-8")
     key = secret.encode("utf-8")
     mixed = bytes(data[i] ^ key[i % len(key)] for i in range(len(data)))
@@ -72,12 +75,7 @@ def build_qx_text(data):
     countries = data["countries"]
     edge_entries = _load_edge_entries()
     idx = 0
-    lines = [
-        "# Quantumult X 专用 (trojan+ws+tls) —— QX 不支持 vless，改用 trojan 承载同一条链式代理",
-        f"# 自动更新: {data['generated_at']}",
-        "# 固定地址: https://hb1314bye-afk.github.io/gate/qx.txt",
-        "# ========================================================",
-    ]
+    lines = []
     ordered = sorted(
         countries.items(),
         key=lambda kv: (-int(kv[1].get("count") or 0), str(kv[1].get("code") or kv[0])),
@@ -94,10 +92,6 @@ def build_qx_text(data):
                 n.get("host") or "",
             ),
         )
-        lines.append("")
-        lines.append(
-            f"# ---- {zh} {code} · {grp['count']} 节点 (住宅 {grp['residential']} / 机房 {grp['datacenter']}) ----"
-        )
         for i, n in enumerate(nodes, 1):
             tag = "住宅" if n.get("residential") == "residential" else "机房"
             name = f"{zh}-{tag}-{i:02d}"
@@ -108,8 +102,9 @@ def build_qx_text(data):
             enc = _b64_secret_encode(chain_json, EDT_UUID)
             ws_path = "/video/" + enc
             lines.append(
-                f"trojan={entry}, password={EDT_UUID}, over-tls=true, "
-                f"tls-host={EDT_DOMAIN}, ws=true, ws-path={ws_path}, tag={name}"
+                f"trojan={entry}, password={EDT_UUID}, obfs=wss, "
+                f"obfs-host={EDT_DOMAIN}, obfs-uri={ws_path}, "
+                f"tls-verification=true, fast-open=false, udp-relay=false, tag={name}"
             )
     return "\n".join(lines) + "\n"
 
