@@ -24,7 +24,7 @@
       'background-image:linear-gradient(90deg,rgba(0,0,0,.76) 0%,rgba(0,0,0,.64) 42%,rgba(0,0,0,.30) 100%),radial-gradient(circle at 58% 62%,rgba(255,255,255,.12) 0%,rgba(255,255,255,.06) 20%,rgba(255,255,255,0) 42%),linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.10)),url("'+photo+'") !important;' +
       'background-repeat:no-repeat !important; background-size:cover !important; background-position:56% 44% !important;' +
       'mix-blend-mode:lighten !important; opacity:1 !important; }\n' +
-      'html:root:root::after { content:none !important; display:none !important; }\\n' +
+      'html:root:root::after { content:none !important; display:none !important; }\n' +
       ':where(aside,nav,[data-testid="sidebar"],[data-testid="sidebar-scrollable-area"],#stage-slideover-sidebar) { text-shadow:0 1px 4px rgba(0,0,0,.95) !important; }\n' +
       'main, article, [data-message-author-role], [data-testid="conversation-turns"] { text-shadow:0 1px 3px rgba(0,0,0,.75) !important; }\n}\n';
     var nonceMatch = body.match(/<meta\b[^>]*property=["']csp-nonce["'][^>]*nonce=["']([^"']+)["']/i) ||
