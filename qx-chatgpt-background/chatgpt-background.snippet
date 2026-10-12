@@ -1,3 +1,4 @@
-# ChatGPT mobile wallpaper BG8 - WebP image, lighter compositing
+# ChatGPT mobile wallpaper BG8 - CSS wallpaper + HTML fallback for cached SafariServices styles
 hostname = chatgpt.com
 ^https:\/\/chatgpt\.com\/(?:cdn\/assets\/root-[^/?]+|unauth-mweb\/assets\/stylex-[^/?]+)\.css(?:\?.*)?$ url script-response-body https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-v8.js
+^https:\/\/chatgpt\.com\/(?:c\/[^?#]+)?(?:\?[^#]*)?$ url script-response-body https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-html-v8.js
