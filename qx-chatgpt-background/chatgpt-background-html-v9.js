@@ -27,8 +27,8 @@
       'html:root::after { content:"BG9H" !important; display:block !important; position:fixed !important;' +
       'right:10px !important; bottom:116px !important; z-index:2147483646 !important;' +
       'padding:3px 7px !important; border-radius:5px !important; font:12px/1.4 sans-serif !important;' +
-      'background:#147d6b !important; color:#fff !important; pointer-events:none !important; }\\n' +
-      ':where(aside,nav,[data-testid="sidebar"],[data-testid="sidebar-scrollable-area"],#stage-slideover-sidebar) { text-shadow:0 1px 4px rgba(0,0,0,.95) !important; }\\n}\n';
+      'background:#147d6b !important; color:#fff !important; pointer-events:none !important; }\n' +
+      ':where(aside,nav,[data-testid="sidebar"],[data-testid="sidebar-scrollable-area"],#stage-slideover-sidebar) { text-shadow:0 1px 4px rgba(0,0,0,.95) !important; }\n}\n';
     var nonceMatch = body.match(/<meta\b[^>]*property=["']csp-nonce["'][^>]*nonce=["']([^"']+)["']/i) ||
       body.match(/<(?:style|script)\b[^>]*\bnonce=["']([^"']+)["']/i);
     var nonce = nonceMatch ? ' nonce="'+nonceMatch[1].replace(/[^a-zA-Z0-9_+\/=.-]/g,'')+'"' : '';
