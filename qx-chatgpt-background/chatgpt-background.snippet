@@ -1,4 +1,4 @@
-# ChatGPT mobile wallpaper BG13 (challenge-safe HTML v14) - sharper light-mode text, light/dark compatible, CSS wallpaper + HTML fallback for cached SafariServices styles
+# ChatGPT wallpaper A/B diagnostic: CSS-only; HTML untouched to isolate Cloudflare challenges
+# Temporary diagnostic; original BG13 + HTML rule saved as chatgpt-background-bg13-html-backup.snippet
 hostname = chatgpt.com
 ^https:\/\/chatgpt\.com\/(?:cdn\/assets\/root-[^/?]+|unauth-mweb\/assets\/stylex-[^/?]+)\.css(?:\?.*)?$ url script-response-body https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-v13.js
-^https:\/\/chatgpt\.com\/(?:c\/[^?#]+)?(?:\?[^#]*)?$ url script-response-body https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-html-v14.js
