@@ -536,7 +536,7 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
       }
       return {policy:group,selected:decisions[group]||"",source:"group"};
     }
-    var groups=Object.keys(decisions), exact=["节点选择","🚀 节点选择","代理选择","🛫 节点选择","Proxy","PROXY","GLOBAL","手动选择","手动切换"];
+    var groups=Object.keys(decisions), exact=["节点选择","🚀 节点选择","订阅选择","🚀 订阅选择","代理选择","🛫 节点选择","Proxy","PROXY","GLOBAL","手动选择","手动切换"];
     for(var i=0;i<exact.length;i++) {
       if(Object.prototype.hasOwnProperty.call(decisions,exact[i]))return {policy:exact[i],selected:decisions[exact[i]],source:"auto"};
     }
