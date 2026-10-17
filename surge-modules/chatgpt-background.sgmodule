@@ -1,9 +1,10 @@
-#!name=ChatGPT 背景图 BG13 · Surge
-#!desc=移植已启用的 QX ChatGPT BG13（仅 CSS）；保留原背景图，不改 HTML、登录、API 或 Cloudflare 验证页面。适用于 Safari/PWA 网页。
+#!name=ChatGPT 背景图 BG13 + HTML 兜底 · Surge
+#!desc=手机 Safari/PWA ChatGPT 背景：原 QX BG13 CSS 注入 + BG14H HTML 兜底；跳过 Cloudflare 验证，不改 API、登录请求和原 Surge 分流。
 #!system=ios
 
 [Script]
 ChatGPT 背景图 CSS = type=http-response,pattern=^https:\/\/chatgpt\.com\/(?:cdn\/assets\/root-[^/?]+|unauth-mweb\/assets\/stylex-[^/?]+)\.css(?:\?.*)?$,requires-body=true,max-size=4194304,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-v13.js,script-update-interval=3600
+ChatGPT 背景图 HTML 兜底 = type=http-response,pattern=^https:\/\/chatgpt\.com\/(?:c\/[^?#]+)?(?:\?[^#]*)?$,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-html-v14.js,script-update-interval=3600
 
 [MITM]
 hostname = %APPEND% chatgpt.com
