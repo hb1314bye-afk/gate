@@ -1,11 +1,13 @@
-#!name=Surge 节点速度测试 · Loon Speedtest 移植版
-#!desc=基于 fanbuz/loon-speedtest-plugin v0.4.1 (MIT) 移植。指定策略下载/上传测速；单路、并发、对比。打开策略选择页找到测速面板，手动点击刷新才运行，不会自动后台测速。不设总流量预算；单项默认 10 秒。V4 高吞吐模式使用8路并发、自适应分块（单次下载不超过1MB），保留实际 Range GET 数据校验。
+#!name=Surge 极速测速 V8 · 缓存核验版
+#!desc=V8 独立可识别版本，16路并发；下载和上传分块最多遵守Surge单次请求/响应体约32MB边界，已删除原有4MB/16MB及累计在途数据上限和自动降为8路；不限总流量，每项15秒。请勿同时启用旧测速模块。
 #!system=ios
-#!author=fanbuz (原测速核心); Surge adaptation
+#!author=fanbuz (MIT测速核心) / Surge适配
 #!homepage=https://github.com/fanbuz/loon-speedtest-plugin
 
 [Script]
-Surge 节点速度测试 = type=generic,engine=webview,timeout=420,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest.js?v=4,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=8&duration=10&warmup=2&maxMB=unlimited&chunkKB=2000&uploadChunkKB=1000&test_source=apple&upload_source=apple&requestTimeout=10&notify=true
+Surge测速 V8 Apple = type=generic,engine=webview,timeout=180,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-v8-verified.js?v=8.20261018,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&uploadChunkKB=32000&requestTimeout=15&notify=false&test_source=apple&upload_source=apple
+Surge测速 V8 CF = type=generic,engine=webview,timeout=120,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-v8-verified.js?v=8.20261018,script-update-interval=3600,argument=direction=download&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&requestTimeout=15&notify=false&test_source=Cloudflare
 
 [Panel]
-Surge 节点速度测试 = title="节点速度测试",content="点击刷新开始测速\n优先测试常见节点选择策略组，或唯一的手动策略组\n默认下载+上传、8路并发、不限总流量、单项10秒",style=info,script-name=Surge 节点速度测试
+Surge测速 V8 Apple = title="Surge测速 V8 · Apple",content="V8 新版本核验 · 16路并发\n不限总流量 · 手动刷新启动\n每路最多受Surge自身约32MB响应限制",style=info,script-name=Surge测速 V8 Apple
+Surge测速 V8 CF = title="Surge测速 V8 · Cloudflare",content="V8 新版本核验 · 16路并发\n不限总流量 · 手动刷新启动",style=info,script-name=Surge测速 V8 CF
