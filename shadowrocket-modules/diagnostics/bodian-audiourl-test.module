@@ -1,0 +1,9 @@
+#!name=波点音乐 · 临时脚本诊断
+#!desc=仅用于测试音频地址请求是否进入 Shadowrocket JS 引擎。不修改流量内容。测试结束请停用。
+#!system=ios
+
+[Script]
+波点音频响应诊断 = type=http-response,pattern=^https?://bd-api\.kuwo\.cn/api/play/music/v2/audioUrl(?:\?|$),requires-body=0,engine=jsc,timeout=10,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/shadowrocket-modules/diagnostics/bodian-audiourl-test.js
+
+[MITM]
+hostname = %APPEND% bd-api.kuwo.cn
