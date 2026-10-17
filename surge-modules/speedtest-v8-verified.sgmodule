@@ -1,0 +1,13 @@
+#!name=Surge 极速测速 V8 · 缓存核验版
+#!desc=V8 独立可识别版本，16路并发；下载和上传分块最多遵守Surge单次请求/响应体约32MB边界，已删除原有4MB/16MB及累计在途数据上限和自动降为8路；不限总流量，每项15秒。请勿同时启用旧测速模块。
+#!system=ios
+#!author=fanbuz (MIT测速核心) / Surge适配
+#!homepage=https://github.com/fanbuz/loon-speedtest-plugin
+
+[Script]
+Surge测速 V8 Apple = type=generic,engine=webview,timeout=180,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-v8-verified.js?v=8.20261018,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&uploadChunkKB=32000&requestTimeout=15&notify=false&test_source=apple&upload_source=apple
+Surge测速 V8 CF = type=generic,engine=webview,timeout=120,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-v8-verified.js?v=8.20261018,script-update-interval=3600,argument=direction=download&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&requestTimeout=15&notify=false&test_source=Cloudflare
+
+[Panel]
+Surge测速 V8 Apple = title="Surge测速 V8 · Apple",content="V8 新版本核验 · 16路并发\n不限总流量 · 手动刷新启动\n每路最多受Surge自身约32MB响应限制",style=info,script-name=Surge测速 V8 Apple
+Surge测速 V8 CF = title="Surge测速 V8 · Cloudflare",content="V8 新版本核验 · 16路并发\n不限总流量 · 手动刷新启动",style=info,script-name=Surge测速 V8 CF
