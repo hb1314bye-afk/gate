@@ -1,0 +1,33 @@
+name: Sync PingMe script for Surge
+
+on:
+  schedule:
+    # UTC every 6 hours; author JS is fetched and converted on changes.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-pingme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Pull latest QX script and regenerate Surge adapter
+        run: python3 surge-modules/pingme/convert_pingme.py
+
+      - name: Commit only if the upstream changed
+        run: |
+          git add surge-modules/pingme/pingme-surge.js
+          if git diff --cached --quiet; then
+            echo "Already up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(pingme): sync latest upstream QX script to Surge"
+            git push
+          fi
