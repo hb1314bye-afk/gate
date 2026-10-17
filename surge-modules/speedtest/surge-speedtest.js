@@ -241,7 +241,7 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
       var token = String(startedAt) + "-" + String(runtime.random ? runtime.random() : Math.random()).slice(2);
       var phaseName = config.phase === "warmup" ? "预热" : "正式测速";
       // Complete-body callbacks can otherwise buffer N large chunks at once.
-      var chunkLimit = config.adaptive ? Math.min(config.chunkBytes, Math.floor(4000000 / config.concurrency)) : config.chunkBytes;
+      var chunkLimit = config.adaptive ? Math.min(config.chunkBytes, Math.floor(8000000 / config.concurrency)) : config.chunkBytes;
       var minChunk = Math.min(16000, chunkLimit);
       var nextChunk = Math.min(chunkLimit, config.initialChunkBytes || 64000);
       var rateEstimate = null;
@@ -616,6 +616,8 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
       "来源：下载 "+result.testSource+" / 上传 "+result.uploadSource,
       "状态："+(result.state==="ok"?"完成":result.state==="partial"?"部分完成":"失败")
     ];
+    lines.push("模式："+(result.mode==="concurrent"?"多路并发":result.mode==="compare"?"单路/并发对比":"单路")+
+      " · "+(result.budgetBytes===Infinity?"不限总流量":"按流量预算"));
     result.runs.forEach(function(r){
       var value=r.state==="ok" && typeof r.bytesPerSecond==="number" ?
         (r.bytesPerSecond*8/1000000).toFixed(2)+" Mbps" : "—";
@@ -647,11 +649,12 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
     // Preserve explicit target routing. Never alter the global outbound policy.
     config.node=selected.policy;
     var options=LoonSpeedtest.normalizeOptions(config);
-    // Bound each response body to 512 KB, distinct from total traffic budget.
-    options.chunkBytes = Math.min(options.chunkBytes, 512000);
+    // High-throughput mode: up to 1MB per request and 8MB adaptive in-flight.
+    // Finite per-request buffers protect iOS; unlimited total bytes remains.
+    options.chunkBytes = Math.min(options.chunkBytes, 1000000);
     if (unlimited) options.maxBytes = Infinity;
     options.nodeProtocol=selected.source==="node"?"未知":"策略组";
-    log("源 v0.4.1（Surge 适配 v1）| 策略："+selected.policy+(selected.selected?" → "+selected.selected:""));
+    log("源 v0.4.1（Surge 适配 v4）| 策略："+selected.policy+(selected.selected?" → "+selected.selected:""));
     log("测速参数："+JSON.stringify({direction:options.direction,mode:options.mode,trafficBudget:unlimited?"不限流量":(options.maxBytes/1000000)+"MB",durationSeconds:options.durationMs/1000,downloadChunkKB:options.chunkBytes/1000,concurrency:options.concurrency,adaptive:options.adaptive}));
     return LoonSpeedtest.run(options,{
       now:function(){return Date.now();},
