@@ -1,0 +1,9 @@
+#!name=全民解压找茬 - 关卡提示与延长时间
+#!desc=微信小程序关卡 JSON 响应处理。原作者 JS 来自 WeiGiegie/666/main 并每小时检查更新。
+#!system=ios
+
+[Script]
+全民解压找茬 = type=http-response,pattern=^https?://res5\.haotgame\.com/cu03/static/OpenDoors/Res/data/levels/\d+\.json,requires-body=true,script-path=https://raw.githubusercontent.com/WeiGiegie/666/main/qmjyzc.js,script-update-interval=3600
+
+[MITM]
+hostname = %APPEND% res5.haotgame.com
