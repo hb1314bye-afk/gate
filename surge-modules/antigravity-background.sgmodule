@@ -1,0 +1,11 @@
+#!name=Antigravity 背景图 V6 · Surge
+#!desc=将现有 QX Antigravity V6 手机壁纸样式迁移到 Surge；只处理反重力首页与远程聊天页面的 HTML/CSS 响应，不修改 API 或登录请求。
+#!system=ios
+
+[Script]
+Antigravity 远程聊天背景 CSS = type=http-response,pattern=^https:\/\/antigravity\.static\.usercontent\.goog\/web\/[^/?]+\/compiled_tailwind\.css(?:\?.*)?$,requires-body=true,max-size=4194304,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-antigravity-background/antigravity-background-v6.js,script-update-interval=3600
+Antigravity 远程聊天背景 HTML = type=http-response,pattern=^https:\/\/antigravity\.static\.usercontent\.goog\/web\/[^/?]+\/(?:\?[^#]*)?$,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-antigravity-background/antigravity-background-v6.js,script-update-interval=3600
+Antigravity 首页背景 HTML = type=http-response,pattern=^https:\/\/antigravity\.google\.com\/(?:u\/[0-9]+\/?)?(?:\?[^#]*)?$,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-antigravity-background/antigravity-home-v6.js,script-update-interval=3600
+
+[MITM]
+hostname = %APPEND% antigravity.google.com, antigravity.static.usercontent.goog
