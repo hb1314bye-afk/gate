@@ -1,13 +1,13 @@
-#!name=Surge 节点极速测速 V6.1 · 16路实验版
-#!desc=已修复参数校验。16路并发、单个下载请求最大16MB、不限总流量，15秒测速；注意高内存、流量消耗，按需手动刷新。
+#!name=Surge 节点极速测速 V7 · 无额外分块限制
+#!desc=16路并发；已移除旧版下载16MB、上传4MB、累计在途负载限制和失败自动降为8路逻辑；仅保留Surge自身约32MB单次请求体边界。不限总流量，下载与上传各15秒。大响应可能导致内存不足、超时或失败，请在Wi-Fi上测试。
 #!system=ios
 #!author=fanbuz (MIT测速核心) / Surge 适配
 #!homepage=https://github.com/fanbuz/loon-speedtest-plugin
 
 [Script]
-节点极速测速 V6.1 Apple = type=generic,engine=webview,timeout=180,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-ultra-v6.js?v=6.1,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=16000&uploadChunkKB=4000&requestTimeout=15&notify=false&test_source=apple&upload_source=apple
-节点极速测速 V6.1 CF下载 = type=generic,engine=webview,timeout=120,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-ultra-v6.js?v=6.1,script-update-interval=3600,argument=direction=download&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=16000&uploadChunkKB=4000&requestTimeout=15&notify=false&test_source=Cloudflare
+节点极速测速 V7 Apple = type=generic,engine=webview,timeout=180,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-ultra-v7.js?v=7.0,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&uploadChunkKB=32000&requestTimeout=15&notify=false&test_source=apple&upload_source=apple
+节点极速测速 V7 CF下载 = type=generic,engine=webview,timeout=120,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-ultra-v7.js?v=7.0,script-update-interval=3600,argument=direction=download&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&requestTimeout=15&notify=false&test_source=Cloudflare
 
 [Panel]
-节点极速测速 V6.1 Apple = title="节点极速测速 V6.1 · Apple",content="16路并发 · 单次最多16MB · 不限总流量\n下载上传各15秒；点击刷新运行",style=info,script-name=节点极速测速 V6.1 Apple
-节点极速测速 V6.1 CF下载 = title="节点极速测速 V6.1 · Cloudflare",content="16路并发 · 单次最多16MB · 不限总流量\n下载15秒；点击刷新运行",style=info,script-name=节点极速测速 V6.1 CF下载
+节点极速测速 V7 Apple = title="节点极速测速 V7 · Apple",content="16路并发 · 取消额外分块限制 · 不限总流量\n下载上传各15秒；手动刷新运行",style=info,script-name=节点极速测速 V7 Apple
+节点极速测速 V7 CF下载 = title="节点极速测速 V7 · Cloudflare",content="16路并发 · 取消额外分块限制 · 不限总流量\n仅下载15秒；手动刷新运行",style=info,script-name=节点极速测速 V7 CF下载
