@@ -1,13 +1,13 @@
-#!name=Surge 节点极速测速 V7 · 无额外分块限制
-#!desc=16路并发；已移除旧版下载16MB、上传4MB、累计在途负载限制和失败自动降为8路逻辑；仅保留Surge自身约32MB单次请求体边界。不限总流量，下载与上传各15秒。大响应可能导致内存不足、超时或失败，请在Wi-Fi上测试。
+#!name=Surge 极速测速 V8 · 缓存核验版
+#!desc=V8 独立可识别版本，16路并发；下载和上传分块最多遵守Surge单次请求/响应体约32MB边界，已删除原有4MB/16MB及累计在途数据上限和自动降为8路；不限总流量，每项15秒。请勿同时启用旧测速模块。
 #!system=ios
-#!author=fanbuz (MIT测速核心) / Surge 适配
+#!author=fanbuz (MIT测速核心) / Surge适配
 #!homepage=https://github.com/fanbuz/loon-speedtest-plugin
 
 [Script]
-节点极速测速 V7 Apple = type=generic,engine=webview,timeout=180,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-ultra-v7.js?v=7.0,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&uploadChunkKB=32000&requestTimeout=15&notify=false&test_source=apple&upload_source=apple
-节点极速测速 V7 CF下载 = type=generic,engine=webview,timeout=120,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-ultra-v7.js?v=7.0,script-update-interval=3600,argument=direction=download&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&requestTimeout=15&notify=false&test_source=Cloudflare
+Surge测速 V8 Apple = type=generic,engine=webview,timeout=180,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-v8-verified.js?v=8.20261018,script-update-interval=3600,argument=direction=both&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&uploadChunkKB=32000&requestTimeout=15&notify=false&test_source=apple&upload_source=apple
+Surge测速 V8 CF = type=generic,engine=webview,timeout=120,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest-v8-verified.js?v=8.20261018,script-update-interval=3600,argument=direction=download&mode=concurrent&adaptive=true&concurrency=16&duration=15&warmup=2&maxMB=unlimited&chunkKB=32000&requestTimeout=15&notify=false&test_source=Cloudflare
 
 [Panel]
-节点极速测速 V7 Apple = title="节点极速测速 V7 · Apple",content="16路并发 · 取消额外分块限制 · 不限总流量\n下载上传各15秒；手动刷新运行",style=info,script-name=节点极速测速 V7 Apple
-节点极速测速 V7 CF下载 = title="节点极速测速 V7 · Cloudflare",content="16路并发 · 取消额外分块限制 · 不限总流量\n仅下载15秒；手动刷新运行",style=info,script-name=节点极速测速 V7 CF下载
+Surge测速 V8 Apple = title="Surge测速 V8 · Apple",content="V8 新版本核验 · 16路并发\n不限总流量 · 手动刷新启动\n每路最多受Surge自身约32MB响应限制",style=info,script-name=Surge测速 V8 Apple
+Surge测速 V8 CF = title="Surge测速 V8 · Cloudflare",content="V8 新版本核验 · 16路并发\n不限总流量 · 手动刷新启动",style=info,script-name=Surge测速 V8 CF
