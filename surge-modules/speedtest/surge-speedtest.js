@@ -255,7 +255,7 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
         if (!successful && !errors.length) errors.push("没有获得可用" + transferName + "样本");
         var warnings = [];
         var drainMs = Math.max(0, elapsedMs - config.durationMs);
-        if (config.phase !== "warmup" && state === "ok" && elapsedMs < 2000) warnings.push("正式样本不足 2 秒；可提高数据预算后复测");
+        if (config.phase !== "warmup" && state === "ok" && elapsedMs < 2000) warnings.push("正式样本不足 2 秒；可延长测量时长后复测");
         if (config.phase !== "warmup" && drainMs > 1000) warnings.push("收尾等待 " + (drainMs / 1000).toFixed(1) + " 秒，已计入平均速度");
         if (incomplete) requestReports.forEach(function (report) { if (report.state === "pending") { report.state = "unresolved"; report.errorKind = "callback-timeout"; report.elapsedMs = runtime.now() - startedAt - report.startMs; } });
         var result = {
@@ -358,7 +358,7 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
         });
       }
       log("开始" + modeLabel(config.concurrency) + transferName + phaseName + " | 目标：" + config.node);
-      log("源：" + config.testUrl + " | " + config.alpn + " | " + (config.adaptive ? "自适应" : "固定分块") + " | 窗口 " + (config.durationMs / 1000) + "s | 预算 " + (config.maxBytes / MB) + " MB | 分块上限 " + config.chunkBytes + " B");
+      log("源：" + config.testUrl + " | " + config.alpn + " | " + (config.adaptive ? "自适应" : "固定分块") + " | 窗口 " + (config.durationMs / 1000) + "s | 流量预算 " + (config.maxBytes === Infinity ? "无上限" : (config.maxBytes / MB) + " MB") + " | 分块上限 " + config.chunkBytes + " B");
       runtime.setTimeout(function () { if (!finished) { if (active) log(phaseName + "窗口结束，等待 " + active + " 个在途请求；收尾计入均值"); maybeFinish(); } }, config.durationMs);
       for (var worker = 0; worker < config.concurrency; worker += 1) {
         if (config.adaptive && worker > 0) (function (index) { runtime.setTimeout(function () { launch(index); }, index * 150); })(worker);
@@ -637,13 +637,17 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
     if(config.httpVersion && config.httpVersion!=="auto") {
       throw new Error("Surge 脚本无法强制指定 HTTP/1 或 HTTP/2；请使用 httpVersion=auto");
     }
+    // Unlimited removes only the total data cap; timeouts and duration remain.
+    var unlimited = /^(?:unlimited|none|0)$/i.test(String(config.maxMB == null ? "" : config.maxMB).trim());
+    if (unlimited) config.maxMB = 256; // satisfy upstream numeric option validation
     var selected=pickTarget(config);
     // Preserve explicit target routing. Never alter the global outbound policy.
     config.node=selected.policy;
     var options=LoonSpeedtest.normalizeOptions(config);
+    if (unlimited) options.maxBytes = Infinity;
     options.nodeProtocol=selected.source==="node"?"未知":"策略组";
     log("源 v0.4.1（Surge 适配 v1）| 策略："+selected.policy+(selected.selected?" → "+selected.selected:""));
-    log("测速参数："+JSON.stringify({direction:options.direction,mode:options.mode,maxMB:options.maxBytes/1000000,concurrency:options.concurrency,adaptive:options.adaptive}));
+    log("测速参数："+JSON.stringify({direction:options.direction,mode:options.mode,trafficBudget:unlimited?"不限流量":(options.maxBytes/1000000)+"MB",durationSeconds:options.durationMs/1000,concurrency:options.concurrency,adaptive:options.adaptive}));
     return LoonSpeedtest.run(options,{
       now:function(){return Date.now();},
       setTimeout:schedule,
