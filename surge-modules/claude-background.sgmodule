@@ -1,0 +1,10 @@
+#!name=Claude WebApp 原图背景 · Surge
+#!desc=在 claude.ai 移动网页/PWA 添加自定义镜面自拍背景。仅改写 CSS 或 HTML，不改聊天、登录及 Cloudflare 验证接口。使用前需托管照片至配置地址。
+#!system=ios
+
+[Script]
+Claude 背景 CSS = type=http-response,pattern=^https:\/\/(?:claude\.ai|assets\.claude\.ai)\/[^?#]*\.css(?:\?[^#]*)?$,requires-body=true,max-size=4194304,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/claude/claude-background.js,script-update-interval=3600
+Claude 背景 HTML = type=http-response,pattern=^https:\/\/claude\.ai\/(?:\?[^#]*|new(?:[/?][^#]*)?|chat(?:[/?][^#]*)?|projects?(?:[/?][^#]*)?|recents?(?:[/?][^#]*)?|settings(?:[/?][^#]*)?)?$,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/claude/claude-background.js,script-update-interval=3600
+
+[MITM]
+hostname = %APPEND% claude.ai, assets.claude.ai
