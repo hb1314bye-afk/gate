@@ -1,11 +1,11 @@
 #!name=Surge 节点速度测试 · Loon Speedtest 移植版
-#!desc=基于 fanbuz/loon-speedtest-plugin v0.4.1 (MIT) 移植。指定策略下载/上传测速；单路、并发、对比。打开策略选择页找到测速面板，手动点击刷新才运行，不会自动后台测速。默认 16MB 测试预算。
+#!desc=基于 fanbuz/loon-speedtest-plugin v0.4.1 (MIT) 移植。指定策略下载/上传测速；单路、并发、对比。打开策略选择页找到测速面板，手动点击刷新才运行，不会自动后台测速。不设总流量预算，单项正式测速默认 10 秒，按时长结束。高带宽节点会消耗较多流量。
 #!system=ios
 #!author=fanbuz (原测速核心); Surge adaptation
 #!homepage=https://github.com/fanbuz/loon-speedtest-plugin
 
 [Script]
-Surge 节点速度测试 = type=generic,engine=webview,timeout=420,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest.js?v=1,script-update-interval=3600,argument=direction=both&mode=single&adaptive=true&concurrency=4&duration=10&warmup=2&maxMB=16&test_source=apple&upload_source=apple&requestTimeout=10&notify=true
+Surge 节点速度测试 = type=generic,engine=webview,timeout=420,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/speedtest/surge-speedtest.js?v=2,script-update-interval=3600,argument=direction=both&mode=single&adaptive=true&concurrency=4&duration=10&warmup=2&maxMB=unlimited&test_source=apple&upload_source=apple&requestTimeout=10&notify=true
 
 [Panel]
-Surge 节点速度测试 = title="节点速度测试",content="点击刷新开始测速\n优先测试常见节点选择策略组，或唯一的手动策略组\n默认下载+上传、单路、预算16MB",style=info,script-name=Surge 节点速度测试
+Surge 节点速度测试 = title="节点速度测试",content="点击刷新开始测速\n优先测试常见节点选择策略组，或唯一的手动策略组\n默认下载+上传、单路、不限流量、单项10秒",style=info,script-name=Surge 节点速度测试
