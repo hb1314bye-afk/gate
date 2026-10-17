@@ -9,3 +9,6 @@ PingMe 手动签到 = type=generic,timeout=600,script-path=https://raw.githubuse
 
 [MITM]
 hostname = %APPEND% api.pingmeapp.net
+
+[Panel]
+PingMe 一键手动签到 = title="PingMe 手动签到",content="点击右侧刷新按钮开始签到；完成后查看 Surge 通知",style=info,script-name=PingMe 手动签到,update-interval=0
