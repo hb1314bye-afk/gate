@@ -176,7 +176,10 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
   }
 
   function preflight(options, runtime) {
-    if (options.direction === "upload" || options.testSource === "cf") return Promise.resolve(null);
+    // Surge HTTPClient can fail HEAD when Apple CDN advertises a very large
+    // Content-Length ("Response body exceeds size limit"), despite no payload.
+    // Actual download GETs still validate 206, Content-Range, and byte count.
+    return Promise.resolve(null);
     if (runtime.log) runtime.log("检查 " + sourceLabel(options.testSource) + " 的范围能力声明（HEAD 不带 Range，不下载正文）");
     return new Promise(function (resolve, reject) {
       var settled = false;
@@ -644,10 +647,12 @@ Adaptation by ChatGPT for Surge iOS (2026-10-18).
     // Preserve explicit target routing. Never alter the global outbound policy.
     config.node=selected.policy;
     var options=LoonSpeedtest.normalizeOptions(config);
+    // Bound each response body to 512 KB, distinct from total traffic budget.
+    options.chunkBytes = Math.min(options.chunkBytes, 512000);
     if (unlimited) options.maxBytes = Infinity;
     options.nodeProtocol=selected.source==="node"?"未知":"策略组";
     log("源 v0.4.1（Surge 适配 v1）| 策略："+selected.policy+(selected.selected?" → "+selected.selected:""));
-    log("测速参数："+JSON.stringify({direction:options.direction,mode:options.mode,trafficBudget:unlimited?"不限流量":(options.maxBytes/1000000)+"MB",durationSeconds:options.durationMs/1000,concurrency:options.concurrency,adaptive:options.adaptive}));
+    log("测速参数："+JSON.stringify({direction:options.direction,mode:options.mode,trafficBudget:unlimited?"不限流量":(options.maxBytes/1000000)+"MB",durationSeconds:options.durationMs/1000,downloadChunkKB:options.chunkBytes/1000,concurrency:options.concurrency,adaptive:options.adaptive}));
     return LoonSpeedtest.run(options,{
       now:function(){return Date.now();},
       setTimeout:schedule,
