@@ -1,0 +1,23 @@
+#!name=晓晓优选·开屏广告抓包补丁（2026-10-18）
+#!desc=按Surge最近请求日志制作：针对白鹤广告、快手广告、广告SDK及疑似开屏素材域名实施REJECT；独立于原模块，便于开关对照。仅针对明确广告用途的主机名，不拦截淘宝、支付宝、通用推送服务。若原模块规则未生效，先检查模块加载和实际匹配规则。
+#!system=ios
+#!author=针对用户提供的Surge请求截图整理
+#!homepage=https://github.com/hb1314bye-afk/gate
+
+[Rule]
+# 原晓晓优选模块已有此规则：截图中仍显示DIRECT，用于诊断是否真正加载模块
+DOMAIN-SUFFIX,baihemob.com,REJECT
+
+# 日志中可见的第三方广告服务、广告素材与广告竞价接口
+DOMAIN,p1-lm.adukwai.com,REJECT
+DOMAIN,m.advast.cn,REJECT
+DOMAIN,sspapi.qingxuntech.cn,REJECT
+DOMAIN,ssp-api.futongjieti.cn,REJECT
+DOMAIN,image.uczzd.cn,REJECT
+DOMAIN,huichuan.sm.cn,REJECT
+DOMAIN,open.e.kuaishou.com,REJECT
+
+# 注意：以上为全局主机名规则，可能影响其它调用相同广告平台的App。
+# 不处理以下混合/非广告主机，防止误伤：
+# loggw-ex.alipay.com, mssdk.volces.com, ido.getui.net,
+# inappcheck.itunes.apple.com, c.sm.cn, mnt.hyzhihe.com。
