@@ -1,5 +1,6 @@
-/* Surge iOS port of the user's existing QX Google subtitle translation script.
- * Requires Surge HTTP-response scripting and MITM for www.youtube.com.
+/* YouTube simplified Chinese caption translation, Surge v2.
+ * Tries the existing caption track's native translation, then Google fallback.
+ * Requires Surge HTTP-response scripting and MITM for the matched YouTube host.
  * Requests to Google's unofficial translation endpoint carry ONLY subtitle text;
  * this script never forwards YouTube credentials, cookies or request headers.
  * Unofficial endpoint: availability and rate limits are outside our control.
@@ -37,19 +38,19 @@ var $task = {
   }
 };
 
-/* Original QX caption parser and Google-translator batching logic, preserved.
- * Storage and HTTP calls above are translated to native Surge APIs.
+/* Caption parsing retained from the original QX port.
+ * Storage and Google HTTP calls above use native Surge APIs.
  */
 /* Original logic: YouTube existing subtitles -> Simplified Chinese
  * Google Translate unofficial no-key endpoint (may rate-limit or stop working).
  * Sends only caption text to Google; NO YouTube Cookie/Authorization forwarded.
  * Translation errors and unsupported formats keep original caption response.
  */
-(function () {
+(async function () {
   "use strict";
   var TAG = "[YT-ZH-Google]";
-  var CACHE = "ytzh_google_caption_cache_v1";
-  var COOLDOWN = "ytzh_google_cooldown_v1";
+  var CACHE = "ytzh_google_caption_cache_v2";
+  var COOLDOWN = "ytzh_google_cooldown_v2";
   var SOURCE = ($response && typeof $response.body === "string") ? $response.body : "";
   var done = false, timer = null;
   function note(message) { console.log(TAG + " " + message); }
@@ -82,6 +83,45 @@ var $task = {
   }
   function escapeXML(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   function clean(s) { return s.replace(/\s+/g," ").trim(); }
+  // Try the existing caption track's own translation before the rate-limited
+  // free Google endpoint. Preserve the signed URL and format; change only tlang.
+  // Never copy Cookie/Authorization headers, and never forward them to Google.
+  function nativeTranslation(url) {
+    return new Promise(function(resolve) {
+      var settled=false;
+      function settle(body) {
+        if(settled)return;
+        settled=true;
+        clearTimeout(deadline);
+        resolve(body);
+      }
+      var deadline=setTimeout(function(){settle(null);},4000);
+      var target=/[?&]tlang=/i.test(url)
+        ?url.replace(/([?&])tlang=[^&#]*/i,"$1tlang=zh-Hans")
+        :url+"&tlang=zh-Hans";
+      var headers={"Accept":"*/*"};
+      Object.keys(($request&&$request.headers)||{}).forEach(function(key){
+        if(/^(user-agent|accept-language|x-youtube-client-name|x-youtube-client-version)$/i.test(key))
+          headers[key]=$request.headers[key];
+      });
+      try {
+        $httpClient.get({url:target,timeout:4,headers:headers,"auto-cookie":false},function(error,response,body){
+          if(settled)return;
+          var status=Number(response&&(response.status||response.statusCode)||0);
+          if(error||status!==200||typeof body!=="string"){
+            note("native translation unavailable (HTTP "+status+"); trying Google");
+            settle(null);return;
+          }
+          var captions=parse(body);
+          if(!captions||!captions.clips.some(function(c){return /[\u3400-\u9fff]/.test(c.source);})){
+            note("native translation returned no Chinese captions; trying Google");
+            settle(null);return;
+          }
+          settle(body);
+        });
+      }catch(_){settle(null);}
+    });
+  }
   function parse(body) {
     var clips = [], render;
     if (/^\s*\{/.test(body)) {
@@ -156,7 +196,7 @@ var $task = {
   }
   try {
     var url=($request && $request.url) || "";
-    if (!/^https:\/\/www\.youtube\.com\/api\/timedtext\?/i.test(url)||!SOURCE){finish();return;}
+    if (!/^https:\/\/(?:www|m|music)\.youtube\.com\/api\/timedtext\?/i.test(url)||!SOURCE){finish();return;}
     var inputLang=getParam(url,"lang").toLowerCase().replace(/_/g,"-");
     var outputLang=getParam(url,"tlang").toLowerCase().replace(/_/g,"-");
     if(/^(zh|zh-cn|zh-hans|zh-sg)$/.test(inputLang)||/^(zh|zh-cn|zh-hans|zh-sg)$/.test(outputLang)){
@@ -166,7 +206,6 @@ var $task = {
     var from=inputLang.split("-")[0];
     if(inputLang==="zh-hk"||inputLang==="zh-tw"||inputLang==="zh-hant")from="zh-TW";
     else if(!supported[from]){note("unknown language; keeping original");finish();return;}
-    if(Date.now()<Number(pref(COOLDOWN)||0)){note("Google cooldown; keeping original");finish();return;}
     var subtitle=parse(SOURCE);
     if(!subtitle||!subtitle.clips.length){note("unsupported subtitle format; keeping original");finish();return;}
     var key=checksum(from+"|"+SOURCE);
@@ -176,7 +215,14 @@ var $task = {
         note("cache hit");finish(hit.body);return;
       }
     }catch(_){}
-    var groups=[],group=[],n=0, MAX_GROUPS=18,MAX_CHAR=450,MAX_PER_GROUP=6;
+    var nativeBody=await nativeTranslation(url);
+    if(nativeBody){
+      note("native Chinese translation succeeded");
+      try{if(nativeBody.length<45000)store(CACHE,JSON.stringify({key:key,time:Date.now(),body:nativeBody}));}catch(_){}
+      finish(nativeBody);return;
+    }
+    if(Date.now()<Number(pref(COOLDOWN)||0)){note("Google briefly rate-limited; keeping original");finish();return;}
+    var groups=[],group=[],n=0, MAX_GROUPS=18,MAX_CHAR=1000,MAX_PER_GROUP=12;
     subtitle.clips.forEach(function(c){
       if(groups.length>=MAX_GROUPS)return;
       if(c.source.length>MAX_CHAR)return;
@@ -189,7 +235,7 @@ var $task = {
     if(group.length&&groups.length<MAX_GROUPS)groups.push(group);
     if(!groups.length){note("nothing short enough to translate");finish();return;}
     var next=0,busy=0,finished=0,success=0,failures=0,blocked=false;
-    timer=setTimeout(function(){note("timeout; keeping original");finish();},11500);
+    timer=setTimeout(function(){note("Google time budget reached; retaining completed translations");finalize();},17000);
     note("requesting "+groups.length+" batches, source="+from);
     function finalize(){
       if(done)return;
@@ -202,7 +248,7 @@ var $task = {
     }
     function pump(){
       if(done)return;
-      while(busy<4&&next<groups.length&&!blocked) {
+      while(busy<2&&next<groups.length&&!blocked) {
         (function(batch){
           busy++;
           var source=batch.map(function(c){return c.source;}).join("\n");
@@ -211,13 +257,13 @@ var $task = {
           $task.fetch({url:endpoint,method:"GET"}).then(function(resp){
             if(done)return;
             var http=Number(resp.statusCode||resp.status||0);
-            if(http===429||http===403){blocked=true;store(COOLDOWN,Date.now()+1800000);failures++;return;}
-            if(http!==200){failures++;return;}
+            if(http===429||http===403){blocked=true;store(COOLDOWN,Date.now()+60000);note("Google HTTP "+http+"; retry paused for 60 seconds");failures++;return;}
+            if(http!==200){note("Google HTTP "+http);failures++;return;}
             var translated=googleTranslation(resp);
             if(!translated){failures++;return;}
             var lines=batch.length===1?[translated]:translated.split(/\r?\n/);
             if(lines.length!==batch.length||lines.some(function(s){return !s.trim();})){
-              failures++;return;
+              note("Google changed cue line count; keeping this batch original");failures++;return;
             }
             lines.forEach(function(line,i){batch[i].set(unescapeHTML(line.trim()));});
             success++;
@@ -225,7 +271,7 @@ var $task = {
           .then(function(){
             if(done)return;
             busy--;finished++;
-            if(blocked||finished===groups.length){finalize();return;}
+            if((blocked&&busy===0)||finished===groups.length){finalize();return;}
             pump();
           });
         })(groups[next++]);
