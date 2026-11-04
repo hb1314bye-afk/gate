@@ -1,10 +1,11 @@
-#!name=ChatGPT 背景图 BG13 + HTML 兜底 · Surge
-#!desc=手机 Safari/PWA ChatGPT 背景：原 QX BG13 CSS 注入 + BG14H HTML 兜底；跳过 Cloudflare 验证，不改 API、登录请求和原 Surge 分流。
+#!name=ChatGPT 双图背景 V15 · Surge
+#!desc=沿用反重力/Claude 的双图原图，适配 ChatGPT 新旧移动网页和主屏幕 WebApp。单层背景保持原比例，已发送消息去气泡，菜单保留原生底色；内嵌图片，仅处理 HTML/CSS 响应。请停用旧版 ChatGPT 背景模块后启用。
 #!system=ios
+#!date=2026-11-04
 
 [Script]
-ChatGPT 背景图 CSS = type=http-response,pattern=^https:\/\/chatgpt\.com\/(?:cdn\/assets\/root-[^/?]+|unauth-mweb\/assets\/stylex-[^/?]+)\.css(?:\?.*)?$,requires-body=true,max-size=4194304,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-v13.js,script-update-interval=3600
-ChatGPT 背景图 HTML 兜底 = type=http-response,pattern=^https:\/\/chatgpt\.com\/(?:c\/[^?#]+)?(?:\?[^#]*)?$,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/qx-chatgpt-background/chatgpt-background-html-v14.js,script-update-interval=3600
+ChatGPT V15 背景 CSS = type=http-response,pattern=^https:\/\/chatgpt\.com\/(?:cdn\/assets|unauth-mweb\/assets|_next\/static\/css)\/[^?#]+\.css(?:\?[^#]*)?$,requires-body=true,max-size=4194304,timeout=10,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/chatgpt/chatgpt-background-v15.js?v=15-20261104,script-update-interval=3600
+ChatGPT V15 背景 HTML = type=http-response,pattern=^https:\/\/chatgpt\.com\/(?:c\/[^?#]+|g\/[^?#]+|share\/[^/?#]+|(?:images|library|projects|settings)(?:\/[^?#]*)?)?(?:\?[^#]*)?$,requires-body=true,max-size=4194304,timeout=10,script-path=https://raw.githubusercontent.com/hb1314bye-afk/gate/main/surge-modules/chatgpt/chatgpt-background-v15.js?v=15-20261104,script-update-interval=3600
 
 [MITM]
 hostname = %APPEND% chatgpt.com
